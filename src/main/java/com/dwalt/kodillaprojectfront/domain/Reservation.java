@@ -13,5 +13,5 @@ public class Reservation {
     private Long id;
     private LocalDate fromDate;
     private LocalDate toDate;
-    private Room room;
+    private Long roomId;
 }

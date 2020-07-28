@@ -20,3 +20,4 @@ public class Room {
 
     private List<Reservation> reservations;
 }
+

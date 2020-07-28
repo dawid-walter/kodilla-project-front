@@ -1,7 +1,6 @@
 package com.dwalt.kodillaprojectfront.views;
 
 import com.dwalt.kodillaprojectfront.domain.Reservation;
-import com.dwalt.kodillaprojectfront.domain.Room;
 import com.dwalt.kodillaprojectfront.fronclient.FrontEndClient;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.combobox.ComboBox;
@@ -15,7 +14,6 @@ import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.select.Select;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.router.Route;
-import com.vaadin.flow.router.RouterLink;
 
 import java.time.LocalDate;
 import java.time.Period;
@@ -29,25 +27,17 @@ public class MainView extends VerticalLayout {
     private int guests = 0;
     private final String[] priceCurrencies = {"PLN", "USD", "EUR", "GBP", "AUD"};
     private final FrontEndClient frontEndClient;
+    Dialog searchReservationDialog = new Dialog();
+    MainMenu mainMenu = new MainMenu();
 
     public MainView(FrontEndClient frontEndClient) {
         this.frontEndClient = frontEndClient;
 
         setAlignItems(Alignment.CENTER);
 
-        createNavMenu();
-        createDatesSelections();
-        testCreate();
-    }
+        add(mainMenu.createMenu());
 
-    private void createNavMenu() {
-        Div menu = new Div();
-        menu.add(new RouterLink(" Home ", MainView.class));
-        menu.add(new RouterLink(" Reservation List ", ReservationListView.class));
-        menu.add(new RouterLink(" Calendar ", CalendarView.class));
-        HorizontalLayout mainMenu = new HorizontalLayout(menu);
-        mainMenu.setSpacing(true);
-        add(mainMenu);
+        createDatesSelections();
     }
 
     private void createDatesSelections() {
@@ -71,9 +61,9 @@ public class MainView extends VerticalLayout {
         Button searchButton = new Button("Search", event -> {
             Scanner scanner = new Scanner(placeHolderComboBox.getValue());
             guests = Integer.parseInt(scanner.next());
-            roomsChoiceDialog();
-
+            createRoomsChoiceDialog();
         });
+
         HorizontalLayout datePickers = new HorizontalLayout();
         datePickers.add(datePickerFrom, datePickerTo);
 
@@ -91,17 +81,23 @@ public class MainView extends VerticalLayout {
         return list;
     }
 
-    private void roomsChoiceDialog() {
-        Dialog dialog = new Dialog();
-        dialog.setWidth("800px");
-        dialog.setHeight("1000px");
-        dialog.removeAll();
+    private void createRoomsChoiceDialog() {
+        searchReservationDialog.setWidth("800px");
+        searchReservationDialog.setHeight("1000px");
+        searchReservationDialog.removeAll();
+
+        if (bookFrom == null || bookTo == null) {
+            searchReservationDialog.removeAll();
+            searchReservationDialog.add(new Paragraph("Please choose dates"));
+            searchReservationDialog.setWidth("200px");
+            searchReservationDialog.setHeight("200px");
+            searchReservationDialog.open();
+        }
 
         Map<String, Double> rates = frontEndClient.getCurrenciesRates();
         int bookedDays = Period.between(bookFrom, bookTo).getDays();
-        List<Room> chosenRooms = new ArrayList<>();
 
-        frontEndClient.getAllRooms().stream()
+        frontEndClient.getAllRoomsInDates(bookFrom, bookTo).stream()
                 .filter(room -> room.getCapacity() >= guests)
                 .collect(Collectors.toList())
                 .forEach(room -> {
@@ -109,7 +105,7 @@ public class MainView extends VerticalLayout {
 
                     TextField priceField = new TextField();
 
-                    priceField.setLabel("Total Price");
+                    priceField.setLabel("Total price for: " + bookedDays + " days");
                     priceField.setValue(String.valueOf(totalPrice));
                     priceField.setReadOnly(true);
 
@@ -128,6 +124,7 @@ public class MainView extends VerticalLayout {
                     roomsLayout.add(new Paragraph(room.getTitle()));
                     roomsLayout.add(new Paragraph(room.getDescription()));
                     roomsLayout.add(new Image(room.getImageUrl(), "image"));
+                    roomsLayout.add(new Paragraph("Reservation from: " + bookFrom + " to: " + bookTo));
                     roomsLayout.add(new Paragraph(priceField, currencySelection));
 
                     Button reservationButton = new Button("Book", buttonClickEvent -> {
@@ -138,36 +135,21 @@ public class MainView extends VerticalLayout {
                         roomsLayout.add(new Paragraph("From: " + bookFrom + " to: " + bookTo));
                         roomsLayout.add(new Paragraph("Total price: " + priceField.getValue() + " " + currencySelection.getValue()));
 
-                        dialog.setHeight("400px");
-                        dialog.setWidth("400px");
-                        dialog.removeAll();
-                        dialog.add(roomsLayout);
+                        searchReservationDialog.setHeight("400px");
+                        searchReservationDialog.setWidth("400px");
+                        searchReservationDialog.removeAll();
+                        searchReservationDialog.add(roomsLayout);
 
                         Reservation reservation = Reservation.builder()
                                 .fromDate(bookFrom)
                                 .toDate(bookTo)
-                                .room(frontEndClient.getRoom(room.getId()))
+                                .roomId(frontEndClient.getRoom(room.getId()).getId())
                                 .build();
                         frontEndClient.sendReservation(reservation);
                     });
 
-                    dialog.add(roomsLayout, reservationButton);
+                    searchReservationDialog.add(roomsLayout, reservationButton);
                 });
-        dialog.open();
-    }
-
-    private void testCreate() {
-        HorizontalLayout layout = new HorizontalLayout();
-        layout.getStyle().set("border", "1px solid #9E9E9E");
-
-        Div component1 = new Div();
-        component1.add("ijfis sjfisdjf  safjisdjf  afjs fja f f ajf j fdjsf s afjs fi");
-        Div component2 = new Div();
-        component1.add("ijfis sjfisdjf  safjisdjf  afjs fja f f ajf j fdjsf s afjs fi");
-        Div component3 = new Div();
-        component1.add("ijfis sjfisdjf  safjisdjf  afjs fja f f ajf j fdjsf s afjs fi");
-
-        layout.addAndExpand(component1, component2, component3);
-        add(layout);
+        searchReservationDialog.open();
     }
 }
