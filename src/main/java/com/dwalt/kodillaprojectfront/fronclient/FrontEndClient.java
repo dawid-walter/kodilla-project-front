@@ -102,4 +102,8 @@ public class FrontEndClient {
     public void updateReservation(Reservation reservation) {
         restTemplate.put(configuration.getBackApiEndpoint() + "/reservations/", reservation, Reservation.class);
     }
+
+    public Room getRoomByTitle(String title) {
+        return restTemplate.getForObject(configuration.getBackApiEndpoint() + "/rooms/byTitle?title=" + title, Room.class);
+    }
 }

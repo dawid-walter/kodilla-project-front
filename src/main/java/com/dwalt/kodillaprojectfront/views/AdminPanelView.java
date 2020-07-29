@@ -263,11 +263,12 @@ public class AdminPanelView extends VerticalLayout {
 
             Button updateReservationButton = new Button("Update", VaadinIcon.REFRESH.create());
             updateReservationButton.addClickListener(cancelEvent -> {
+                Long newRoomId = frontEndClient.getRoomByTitle(roomSelect.getValue()).getId();
                 frontEndClient.updateReservation(Reservation.builder()
                         .id(calendarEntryReservationId)
                         .toDate(dateTo.getValue())
                         .fromDate(dateFrom.getValue())
-                        .roomId(roomId)
+                        .roomId(newRoomId)
                         .build());
                 dialog.close();
                 Dialog confirmationDialog = new Dialog();
